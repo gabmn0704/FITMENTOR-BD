@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: fitmentor-backend
+    runtime: docker
+    repo: https://github.com/gabmn0704/FITMENTOR-BACKEND
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: ohio
+    plan: 0.5c-512mb
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: fitmentor-postgres
+          property: host
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: fitmentor-postgres
+          property: port
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: fitmentor-postgres
+          property: database
+      - key: DATABASE_USER
+        fromDatabase:
+          name: fitmentor-postgres
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: fitmentor-postgres
+          property: password
+      - key: AI_SERVICE_URL
+        fromService:
+          type: pserv
+          name: fitmentor-ai
+          property: hostport
+  - type: pserv
+    name: fitmentor-ai
+    runtime: docker
+    repo: https://github.com/gabmn0704/FITMENTOR-IA
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: ohio
+    plan: 0.5c-512mb
+    autoDeployTrigger: checksPass
+databases:
+  - name: fitmentor-postgres
+    databaseName: fitmentor
+    user: fitmentor
+    postgresMajorVersion: '16'
+    region: ohio
+    plan: 0.5c-1g
+    connectionPool: pgbouncer
+    ipAllowList: []

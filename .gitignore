@@ -1,0 +1,4 @@
+pgdata/
+*.dump
+*.sql.gz
+.DS_Store

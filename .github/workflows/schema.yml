@@ -1,0 +1,42 @@
+name: Database schema checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-schema:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: fitmentor
+          POSTGRES_USER: fitmentor
+          POSTGRES_PASSWORD: fitmentor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitmentor -d fitmentor"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Apply schema
+        env:
+          PGPASSWORD: fitmentor
+        run: psql -h 127.0.0.1 -U fitmentor -d fitmentor -v ON_ERROR_STOP=1 -f init.sql
+      - name: Verify tables and relationship
+        env:
+          PGPASSWORD: fitmentor
+        run: psql -h 127.0.0.1 -U fitmentor -d fitmentor -v ON_ERROR_STOP=1 -f tests/verify_schema.sql
