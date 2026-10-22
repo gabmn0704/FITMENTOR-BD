@@ -43,3 +43,37 @@ BEGIN
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
     END IF;
 END $$;
+
+CREATE TABLE IF NOT EXISTS user_achievements (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    achievement_id VARCHAR(60) NOT NULL,
+    unlocked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, achievement_id)
+);
+
+CREATE TABLE IF NOT EXISTS routine_plans (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    level VARCHAR(30) NOT NULL,
+    rest_seconds INTEGER NOT NULL DEFAULT 0,
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS training_sessions_user_created_idx
+    ON training_sessions (user_id, created_at DESC);
+
+-- users.google_id is covered by the UNIQUE constraint declared above (unique index users_google_id_key).
+
+-- Per-user aggregates. Users without sessions appear with zero totals and a NULL average accuracy.
+CREATE OR REPLACE VIEW user_stats AS
+SELECT
+    u.id AS user_id,
+    COUNT(ts.id) AS total_sessions,
+    COALESCE(SUM(ts.repetitions), 0) AS total_repetitions,
+    COALESCE(SUM(ts.calories), 0) AS total_calories,
+    ROUND(AVG(ts.accuracy), 2) AS avg_accuracy
+FROM users u
+LEFT JOIN training_sessions ts ON ts.user_id = u.id
+GROUP BY u.id;
