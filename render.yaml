@@ -13,6 +13,17 @@ services:
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
     envVars:
+      - key: NODE_ENV
+        value: production
+      # Required in production: the backend refuses to start without it.
+      - key: JWT_SECRET
+        generateValue: true
+      # Comma-separated list of allowed frontend origins (required in production).
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # OAuth client id used as the audience when verifying Google ID tokens.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: DATABASE_HOST
         fromDatabase:
           name: fitmentor-postgres
@@ -33,6 +44,7 @@ services:
         fromDatabase:
           name: fitmentor-postgres
           property: password
+      # Render gives "host:port" without a scheme; the backend prefixes http:// for private services.
       - key: AI_SERVICE_URL
         fromService:
           type: pserv
@@ -49,6 +61,9 @@ services:
     plan: 0.5c-512mb
     healthCheckPath: /health
     autoDeployTrigger: checksPass
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
 databases:
   - name: fitmentor-postgres
     databaseName: fitmentor

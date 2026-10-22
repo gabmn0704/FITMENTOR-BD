@@ -8,13 +8,13 @@ Esquema PostgreSQL y configuración de despliegue para los servicios de FitMento
 
 | Objeto | Descripción |
 |---|---|
-| `users` | Perfiles de usuario. Incluye `google_id` (único, inicio de sesión con Google), `picture`, `goal` e `is_guest`. Los invitados usan un correo sintético. |
+| `users` | Perfiles de usuario. `email` es `NOT NULL UNIQUE`; incluye `google_id` (único, inicio de sesión con Google), `picture`, `goal` (máx. 60) e `is_guest` (`NOT NULL`). Los invitados usan un correo sintético único `guest-<uuid>@guest.fitmentor.local`. |
 | `training_sessions` | Sesiones de entrenamiento con `avg_angles` (JSONB). Se borran en cascada al eliminar su usuario. |
 | `user_achievements` | Logros desbloqueados por usuario (clave primaria compuesta `user_id`, `achievement_id`). |
 | `routine_plans` | Planes de rutina generados para un usuario, con `items` en JSONB. |
 | `user_stats` (vista) | Por usuario: total de sesiones, repeticiones, calorías y precisión media. Los usuarios sin sesiones aparecen con totales en cero y precisión `NULL`. |
 
-Índices relevantes: `training_sessions_user_created_idx` sobre `(user_id, created_at DESC)` y el índice único de `users.google_id`, que ya lo cubre la restricción `UNIQUE`.
+Índices relevantes: `training_sessions_user_created_idx` sobre `(user_id, created_at DESC)`, `routine_plans_user_created_idx` sobre `(user_id, created_at DESC)` y el índice único de `users.google_id`, que ya lo cubre la restricción `UNIQUE`.
 
 El backend aplica el mismo esquema al arrancar, así que una base recién aprovisionada se inicializa sola.
 
@@ -51,6 +51,8 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f seed.sql
 | `fitmentor-backend` | web | `/api/health` |
 | `fitmentor-ai` | privado | `/health` |
 | `fitmentor-postgres` | PostgreSQL 16 | — |
+
+Variables que el Blueprint configura en el backend: `NODE_ENV=production`, `JWT_SECRET` (generado por Render), `FRONTEND_ORIGIN` y `GOOGLE_CLIENT_ID` (se piden al crear el Blueprint), los datos de conexión de PostgreSQL y `AI_SERVICE_URL` (`host:puerto` privado del servicio de IA; el backend le antepone `http://`). En el servicio de IA, `ANTHROPIC_API_KEY` es opcional: sin ella el coach responde con reglas.
 
 Para desplegar, crea un nuevo Blueprint desde este repositorio en Render y autoriza el acceso a los tres repositorios de servicio.
 
