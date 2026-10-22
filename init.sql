@@ -6,6 +6,12 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Google sign-in and profile fields. Guest users keep a synthetic email.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(64) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS picture TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS goal VARCHAR(60);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_guest BOOLEAN DEFAULT false;
+
 CREATE TABLE IF NOT EXISTS training_sessions (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
