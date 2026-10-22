@@ -1,5 +1,6 @@
-# Blueprint for the FitMentor stack. Both services are Node/TypeScript
-# (FITMENTOR-BACKEND and FITMENTOR-IA), each built from its own Dockerfile.
+# Blueprint for the FitMentor stack: FITMENTOR-BACKEND (Java 21 / Spring Boot) and
+# FITMENTOR-IA (Python / FastAPI), each built from its own Dockerfile, plus PostgreSQL 16.
+# The backend applies init.sql (bundled as db/schema.sql) on start and validates its JPA mapping.
 services:
   - type: web
     name: fitmentor-backend
@@ -10,11 +11,12 @@ services:
     dockerContext: .
     region: ohio
     plan: 0.5c-512mb
-    healthCheckPath: /api/health
+    healthCheckPath: /actuator/health
     autoDeployTrigger: checksPass
     envVars:
-      - key: NODE_ENV
-        value: production
+      # Production profile: PostgreSQL, schema applied on start, ddl-auto=validate.
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
       # Required in production: the backend refuses to start without it.
       - key: JWT_SECRET
         generateValue: true

@@ -16,7 +16,7 @@ Esquema PostgreSQL y configuración de despliegue para los servicios de FitMento
 
 Índices relevantes: `training_sessions_user_created_idx` sobre `(user_id, created_at DESC)`, `routine_plans_user_created_idx` sobre `(user_id, created_at DESC)` y el índice único de `users.google_id`, que ya lo cubre la restricción `UNIQUE`.
 
-El backend aplica el mismo esquema al arrancar, así que una base recién aprovisionada se inicializa sola.
+El backend lleva una copia idéntica de `init.sql` (`src/main/resources/db/schema.sql`) y la ejecuta en cada arranque con el perfil `render`; después Hibernate sólo valida el mapeo (`ddl-auto: validate`). Así una base recién aprovisionada se inicializa sola y una existente se actualiza. Si cambias `init.sql`, copia el archivo al backend.
 
 ### Datos de demostración
 
@@ -44,15 +44,15 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f seed.sql
 
 ## Despliegue en la nube
 
-`render.yaml` es un Blueprint de Render que conecta los repositorios públicos de GitHub `FITMENTOR-BACKEND` y `FITMENTOR-IA`, ambos en Node/TypeScript con su propio `Dockerfile`. Provisiona PostgreSQL y pasa a la API los valores de conexión privados de la base de datos y la URL del servicio de IA.
+`render.yaml` es un Blueprint de Render que conecta los repositorios públicos de GitHub `FITMENTOR-BACKEND` (Java 21 / Spring Boot) y `FITMENTOR-IA` (Python / FastAPI), cada uno con su propio `Dockerfile`. Provisiona PostgreSQL y pasa a la API los valores de conexión privados de la base de datos y la URL del servicio de IA.
 
 | Servicio | Tipo | Health check |
 |---|---|---|
-| `fitmentor-backend` | web | `/api/health` |
+| `fitmentor-backend` | web | `/actuator/health` |
 | `fitmentor-ai` | privado | `/health` |
 | `fitmentor-postgres` | PostgreSQL 16 | — |
 
-Variables que el Blueprint configura en el backend: `NODE_ENV=production`, `JWT_SECRET` (generado por Render), `FRONTEND_ORIGIN` y `GOOGLE_CLIENT_ID` (se piden al crear el Blueprint), los datos de conexión de PostgreSQL y `AI_SERVICE_URL` (`host:puerto` privado del servicio de IA; el backend le antepone `http://`). En el servicio de IA, `ANTHROPIC_API_KEY` es opcional: sin ella el coach responde con reglas.
+Variables que el Blueprint configura en el backend: `SPRING_PROFILES_ACTIVE=render`, `JWT_SECRET` (generado por Render), `FRONTEND_ORIGIN` y `GOOGLE_CLIENT_ID` (se piden al crear el Blueprint), los datos de conexión de PostgreSQL y `AI_SERVICE_URL` (`host:puerto` privado del servicio de IA; el backend le antepone `http://`). En el servicio de IA, `ANTHROPIC_API_KEY` es opcional: sin ella el coach responde con reglas.
 
 Para desplegar, crea un nuevo Blueprint desde este repositorio en Render y autoriza el acceso a los tres repositorios de servicio.
 
