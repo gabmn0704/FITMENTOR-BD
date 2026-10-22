@@ -10,7 +10,10 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(64) UNIQUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS picture TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS goal VARCHAR(60);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS is_guest BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_guest BOOLEAN NOT NULL DEFAULT false;
+-- Databases where is_guest was created nullable: backfill and enforce NOT NULL (idempotent).
+UPDATE users SET is_guest = false WHERE is_guest IS NULL;
+ALTER TABLE users ALTER COLUMN is_guest SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS training_sessions (
     id UUID PRIMARY KEY,
@@ -23,7 +26,9 @@ CREATE TABLE IF NOT EXISTS training_sessions (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS avg_angles JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS avg_angles JSONB NOT NULL DEFAULT '{}'::jsonb;
+UPDATE training_sessions SET avg_angles = '{}'::jsonb WHERE avg_angles IS NULL;
+ALTER TABLE training_sessions ALTER COLUMN avg_angles SET NOT NULL;
 
 -- Databases created before this change have the FK without ON DELETE CASCADE.
 -- Recreate it only when the existing action is not CASCADE ('c').
@@ -63,6 +68,9 @@ CREATE TABLE IF NOT EXISTS routine_plans (
 
 CREATE INDEX IF NOT EXISTS training_sessions_user_created_idx
     ON training_sessions (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS routine_plans_user_created_idx
+    ON routine_plans (user_id, created_at DESC);
 
 -- users.google_id is covered by the UNIQUE constraint declared above (unique index users_google_id_key).
 

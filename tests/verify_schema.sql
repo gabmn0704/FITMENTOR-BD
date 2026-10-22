@@ -57,6 +57,38 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- Columns the backend relies on being NOT NULL
+    FOR expected_column IN
+        SELECT * FROM (VALUES
+            ('users', 'email'),
+            ('users', 'is_guest'),
+            ('training_sessions', 'avg_angles')
+        ) AS v(table_name, column_name)
+    LOOP
+        IF EXISTS (
+            SELECT 1
+            FROM information_schema.columns c
+            WHERE c.table_schema = 'public'
+              AND c.table_name = expected_column.table_name
+              AND c.column_name = expected_column.column_name
+              AND c.is_nullable = 'YES'
+        ) THEN
+            RAISE EXCEPTION 'column %.% must be NOT NULL', expected_column.table_name, expected_column.column_name;
+        END IF;
+    END LOOP;
+
+    -- Unique email (guests use a synthetic unique address)
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_index i
+        JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey)
+        WHERE i.indrelid = 'public.users'::regclass
+          AND i.indisunique
+          AND a.attname = 'email'
+    ) THEN
+        RAISE EXCEPTION 'unique index on users(email) is missing';
+    END IF;
+
     -- Original relationship
     IF NOT EXISTS (
         SELECT 1
@@ -92,6 +124,16 @@ BEGIN
           AND indexname = 'training_sessions_user_created_idx'
     ) THEN
         RAISE EXCEPTION 'training_sessions_user_created_idx is missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_indexes
+        WHERE schemaname = 'public'
+          AND tablename = 'routine_plans'
+          AND indexname = 'routine_plans_user_created_idx'
+    ) THEN
+        RAISE EXCEPTION 'routine_plans_user_created_idx is missing';
     END IF;
 
     IF NOT EXISTS (
