@@ -36,7 +36,15 @@ jobs:
         env:
           PGPASSWORD: fitmentor
         run: psql -h 127.0.0.1 -U fitmentor -d fitmentor -v ON_ERROR_STOP=1 -f init.sql
-      - name: Verify tables and relationship
+      - name: Apply schema again (idempotency)
+        env:
+          PGPASSWORD: fitmentor
+        run: psql -h 127.0.0.1 -U fitmentor -d fitmentor -v ON_ERROR_STOP=1 -f init.sql
+      - name: Verify tables, columns, indexes and view
         env:
           PGPASSWORD: fitmentor
         run: psql -h 127.0.0.1 -U fitmentor -d fitmentor -v ON_ERROR_STOP=1 -f tests/verify_schema.sql
+      - name: Load demo seed
+        env:
+          PGPASSWORD: fitmentor
+        run: psql -h 127.0.0.1 -U fitmentor -d fitmentor -v ON_ERROR_STOP=1 -f seed.sql
