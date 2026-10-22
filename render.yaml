@@ -1,3 +1,5 @@
+# Blueprint for the FitMentor stack. Both services are Node/TypeScript
+# (FITMENTOR-BACKEND and FITMENTOR-IA), each built from its own Dockerfile.
 services:
   - type: web
     name: fitmentor-backend
@@ -45,6 +47,7 @@ services:
     dockerContext: .
     region: ohio
     plan: 0.5c-512mb
+    healthCheckPath: /health
     autoDeployTrigger: checksPass
 databases:
   - name: fitmentor-postgres
