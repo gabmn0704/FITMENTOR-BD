@@ -1,3 +1,6 @@
+# Blueprint for the FitMentor stack: FITMENTOR-BACKEND (Java 21 / Spring Boot) and
+# FITMENTOR-IA (Python / FastAPI), each built from its own Dockerfile, plus PostgreSQL 16.
+# The backend applies init.sql (bundled as db/schema.sql) on start and validates its JPA mapping.
 services:
   - type: web
     name: fitmentor-backend
@@ -8,9 +11,21 @@ services:
     dockerContext: .
     region: ohio
     plan: 0.5c-512mb
-    healthCheckPath: /api/health
+    healthCheckPath: /actuator/health
     autoDeployTrigger: checksPass
     envVars:
+      # Production profile: PostgreSQL, schema applied on start, ddl-auto=validate.
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      # Required in production: the backend refuses to start without it.
+      - key: JWT_SECRET
+        generateValue: true
+      # Comma-separated list of allowed frontend origins (required in production).
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # OAuth client id used as the audience when verifying Google ID tokens.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: DATABASE_HOST
         fromDatabase:
           name: fitmentor-postgres
@@ -31,6 +46,7 @@ services:
         fromDatabase:
           name: fitmentor-postgres
           property: password
+      # Render gives "host:port" without a scheme; the backend prefixes http:// for private services.
       - key: AI_SERVICE_URL
         fromService:
           type: pserv
@@ -45,7 +61,11 @@ services:
     dockerContext: .
     region: ohio
     plan: 0.5c-512mb
+    healthCheckPath: /health
     autoDeployTrigger: checksPass
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
 databases:
   - name: fitmentor-postgres
     databaseName: fitmentor
