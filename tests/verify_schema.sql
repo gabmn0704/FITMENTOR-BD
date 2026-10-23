@@ -24,6 +24,7 @@ BEGIN
             ('users', 'goal', 'character varying'),
             ('users', 'is_guest', 'boolean'),
             ('users', 'password_hash', 'character varying'),
+            ('users', 'sessions_valid_after', 'timestamp with time zone'),
             ('training_sessions', 'id', 'uuid'),
             ('training_sessions', 'user_id', 'uuid'),
             ('training_sessions', 'exercise', 'character varying'),
